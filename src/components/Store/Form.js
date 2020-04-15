@@ -2,8 +2,10 @@ import React, { useState } from "react";
 import { Form, Button, Col, Container, Row } from "react-bootstrap";
 import Map from "../Map/Map";
 import axios from "axios";
+import Geocode from "react-geocode";
 
 export default function StoreForm() {
+  Geocode.setApiKey(process.env.REACT_APP_GOOGLE_KEY);
   const companies = [
     { id: 0, name: "Choose compagny" },
     { id: 1, name: "Carrefour" },
@@ -29,15 +31,25 @@ export default function StoreForm() {
 
   const onSubmit = e => {
     e.preventDefault();
-    const storeData = {
-      name: values.name,
-      company: parseInt(values.company),
-      address: values.address,
-      city: values.city,
-      zipcode: parseInt(values.zipcode)
-    };
-
-    axios.post("/stores", storeData).then(result => console.log(result));
+    const address =
+      values.address + " " + parseInt(values.zipcode) + " " + values.city;
+    Geocode.fromAddress(address).then(
+      response => {
+        const storeData = {
+          name: values.name,
+          company: parseInt(values.company),
+          address: values.address,
+          city: values.city,
+          zipcode: parseInt(values.zipcode),
+          lat: parseFloat(response.results[0].geometry.location.lat),
+          lng: parseFloat(response.results[0].geometry.location.lng)
+        };
+        axios.post("/stores", storeData).then(result => console.log(result));
+      },
+      error => {
+        console.error(error);
+      }
+    );
   };
 
   return (
@@ -64,7 +76,9 @@ export default function StoreForm() {
                   as="select"
                 >
                   {companies.map(company => (
-                    <option value={company.id}>{company.name}</option>
+                    <option key={company.id} value={company.id}>
+                      {company.name}
+                    </option>
                   ))}
                 </Form.Control>
               </Form.Group>

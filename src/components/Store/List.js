@@ -2,11 +2,10 @@ import React, { useState, useEffect } from "react";
 import { Link } from "react-router-dom";
 import { Button } from "react-bootstrap";
 import Map from "../Map/GoogleMap";
-import Marker from "../Map/Marker";
 import axios from "axios";
 
 export default function List() {
-  const [data, setData] = useState({ stores: [] });
+  const [stores, setStores] = useState([]);
   const [mapApiLoaded, setMapApiLoaded] = useState(false);
   const [mapInstance, setMapInstance] = useState();
   const [mapApi, setMapApi] = useState();
@@ -16,12 +15,26 @@ export default function List() {
     setMapInstance(map);
     setMapApi(maps);
   };
+
+  const renderMarker = (map, maps) => {
+    stores.map(
+      store =>
+        new maps.Marker({
+          position: { lat: store.lat, lng: store.lng },
+          map,
+          title: store.text
+        })
+    );
+  };
+
   useEffect(() => {
     function getStore() {
       axios.get("/stores").then(result => {
-        if (result.data) {
-          setData({ stores: result.data });
+        const array = [];
+        if (result.data.length > 0) {
+          result.data.map(store => array.push(store));
         }
+        setStores(array);
       });
     }
 
@@ -41,17 +54,12 @@ export default function List() {
             libraries: ["places", "geometry"]
           }}
           yesIWantToUseGoogleMapApiInternals
-          onGoogleApiLoaded={({ map, maps }) => apiHasLoaded(map, maps)}
-        >
-          {data.stores.map(store => (
-            <Marker
-              key={store.id}
-              text={store.name}
-              lat={store.lat}
-              lng={store.lng}
-            />
-          ))}
-        </Map>
+          onGoogleApiLoaded={({ map, maps }) => {
+            apiHasLoaded(map, maps);
+            console.log(map);
+            renderMarker(map, maps);
+          }}
+        ></Map>
       </div>
       <Link to="/stores/add">
         <Button variant="primary">Add Store</Button>
